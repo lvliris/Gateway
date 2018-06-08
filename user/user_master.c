@@ -1973,7 +1973,7 @@ int HttpGetRequest(uint8* data, uint8 len)
 //	free(buff);
 //	return 0;
 //}
-
+#define MASTER_DBG printf
 void SendToClient(uint8 *data, uint8 len)
 {
 	uint8 i;
@@ -2012,6 +2012,8 @@ void SendToClient(uint8 *data, uint8 len)
 		}
 	}
 }
+#define MASTER_DBG /\
+/printf
 
 //void SendToClient(uint8 *data, uint8 len)
 //{
