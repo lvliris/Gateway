@@ -40,6 +40,7 @@
 #define UDP_STRING		"HF-A11ASSISTHREAD"
 
 #define REMOTE_IP		"101.201.211.87"//"192.168.0.200"//"10.10.100.104"//
+#define REMOTE_DOMAIN  	"www.baidu.com"
 
 #define UDP_LOCAL_PORT  48899
 #define SERVER_PORT     8899

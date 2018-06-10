@@ -92,9 +92,40 @@ int CreateClient()
 void TCPClient(void *pvParameters){
 	int ret;
 	uint8 recvbytes;
+	uint8 dns_retry_counts = 0;
 	char *pbuf,*recv_buf,*p;
 	struct sockaddr_in remote_ip;
+	struct hostent *ahostent = NULL;
+	struct ip_addr server_ip;
 	xTaskHandle ProDataHandle;
+
+	do
+	{
+		ahostent = gethostbyname(REMOTE_DOMAIN);
+		if(ahostent == NULL){
+			vTaskDelay(500/portTICK_RATE_MS);
+		}else{
+		    printf("Get DNS OK!\n");
+		    break;
+		}
+	}while(dns_retry_counts < 20);
+
+	if(ahostent == NULL)
+	{
+		printf("ERROR: failed to get DNS, rebooting...\n");
+	}
+	else
+	{
+		if(ahostent->h_length <= 4)
+		{
+			memcpy(&server_ip, (char*)(ahostent->h_addr_list[0]), ahostent->h_length);
+			printf("ESP_DOMAIN IP address: %s\n", inet_ntoa(server_ip));
+		}
+		else
+		{
+			os_printf("ERR:arr_overflow,%u,%d\n",__LINE__, ahostent->h_length );
+		}
+	}
 
 	bzero(&remote_ip, sizeof(remote_ip));
 	remote_ip.sin_family = AF_INET; /* Internet address family */
@@ -104,7 +135,10 @@ void TCPClient(void *pvParameters){
 
 	while(1){
 		if(retrytimes++ > 20)
+		{
+			printf("Restart to connect to the Server\n");
 			system_restart();
+		}
 		/* Create socket*/
 		sta_socket = socket(PF_INET, SOCK_STREAM, 0);
 		if(sta_socket == INVALID_SOCKET){
@@ -155,9 +189,12 @@ void TCPClient(void *pvParameters){
 		//disconnect after receiving signal and try to reconnect
 		if(xStatus == pdPASS && state)
 		{
-			close(sta_socket);
-			sta_socket = INVALID_SOCKET;
-			printf("receive stop sta_socket signal\n");
+			if(sta_socket != INVALID_SOCKET)
+			{
+				close(sta_socket);
+				sta_socket = INVALID_SOCKET;
+			}
+			printf("WARNING: disconnected to Server, reconnecting...\n");
 			break;
 		}
 
@@ -167,7 +204,10 @@ void TCPClient(void *pvParameters){
 		//get free heap size, restart if there is no enough space
 		int heap_size = system_get_free_heap_size();
 		if(heap_size < 5000)
+		{
+			printf("WARNING: No enough heap space, rebooting...\n");
 			system_restart();
+		}
 		vTaskDelay(2000 / portTICK_RATE_MS);
 
 #ifdef DEBUG
@@ -1995,14 +2035,14 @@ void SendToClient(uint8 *data, uint8 len)
 		int ret = select(client_sock + 1, NULL, &write_set, NULL, &timeout);
 		MASTER_DBG("SendToClient task > select ret: %d\n", ret);
 
-		if(ret != 0)
+		if(ret > 0)
 		{
 			MASTER_DBG("SendToClient task > send to client %d\n", client_sock);
 			if (FD_ISSET(client_sock, &write_set) && (data != NULL))
 			{
 				if((ret = send(client_sock, data, len, 0)) <= 0)
 				{
-					close(client_sock);
+					CloseClient(client_sock);
 					MASTER_DBG("SendToClient task > send to %d failed!\n", client_sock);
 				}
 				else
@@ -2010,6 +2050,10 @@ void SendToClient(uint8 *data, uint8 len)
 					MASTER_DBG("SendToClient task > send %d bytes to %d success\n", ret, client_sock);
 				}
 			}
+		}
+		else
+		{
+			CloseClient(client_sock);
 		}
 	}
 }
@@ -2042,18 +2086,27 @@ void SendToClient(uint8 *data, uint8 len)
 void CloseClient(SOCKET client)
 {
 	uint8 i;
+
 	for(i = 0; i < client_num; i++)
+	{
 		if(client == client_conn[i])
 			break;
+	}
+
 	if(i == client_num)
 	{
 		MASTER_DBG("ESP8266 TCPClientProcess task > error:connection not found!\n");
+		return;
 	}
 	else if(i < client_num-1)
+	{
 		for( ; i < client_num; i++)
 			client_conn[i] = client_conn[i+1];
+	}
+
 	close(client);
 	client_num--;
+
 	MASTER_DBG("remaining %d connection: ", client_num);
 	for(i = 0; i < client_num; i++)
 	{
