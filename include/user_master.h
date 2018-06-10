@@ -45,7 +45,7 @@
 #define SERVER_PORT     8899
 #define REMOTE_PORT		8080
 #define DATA_LEN        128
-#define MAX_CONN		3
+#define MAX_CONN		4
 
 #define ORDER_LEN	32
 #define ORDER_NUM	30

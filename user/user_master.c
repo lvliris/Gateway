@@ -891,9 +891,9 @@ void SceneOrder(void *pvParameters){
 	spi_flash_read(ReadAddr, (uint32*)orderbuffer, BufferLen);
 	while((head = FindHead(orderbuffer, DATA_LEN)) != NULL)
 	{
+		addrLen = strlen(head);
 		if(stateFlag[ordersqe])
 		{
-		addrLen = strlen(head);
 		convertaddr(head);
 		head[addrLen - 4] = '\0';
 
@@ -943,9 +943,9 @@ void SceneOrder(void *pvParameters){
 	spi_flash_read(ReadAddr, (uint32*)orderbuffer, BufferLen);
 	while((head = FindHead(orderbuffer, DATA_LEN)) != NULL)
 	{
+		addrLen = strlen(head);
 		if(stateFlag[ordersqe])
 		{
-		addrLen = strlen(head);
 		convertaddr(head);
 		head[addrLen - 4] = '\0';
 
@@ -1973,7 +1973,8 @@ int HttpGetRequest(uint8* data, uint8 len)
 //	free(buff);
 //	return 0;
 //}
-#define MASTER_DBG printf
+//#undef MASTER_DBG
+//#define MASTER_DBG printf
 void SendToClient(uint8 *data, uint8 len)
 {
 	uint8 i;
@@ -1983,9 +1984,9 @@ void SendToClient(uint8 *data, uint8 len)
 //#ifdef DEBUG
 	MASTER_DBG("SendToClient task > send to %d clients\n", client_num);
 //#endif
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 100000;
 	for(i=0; i < client_num; i++){
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 100000;
 		client_sock = client_conn[i];
 
 		FD_ZERO(&write_set);
@@ -1999,21 +2000,22 @@ void SendToClient(uint8 *data, uint8 len)
 			MASTER_DBG("SendToClient task > send to client %d\n", client_sock);
 			if (FD_ISSET(client_sock, &write_set) && (data != NULL))
 			{
-				if(send(client_sock, data, len, 0) <= 0)
+				if((ret = send(client_sock, data, len, 0)) <= 0)
 				{
 					close(client_sock);
 					MASTER_DBG("SendToClient task > send to %d failed!\n", client_sock);
 				}
 				else
 				{
-					MASTER_DBG("SendToClient task > send to %d success\n", client_sock);
+					MASTER_DBG("SendToClient task > send %d bytes to %d success\n", ret, client_sock);
 				}
 			}
 		}
 	}
 }
-#define MASTER_DBG /\
-/printf
+//#undef MASTER_DBG
+//#define MASTER_DBG /\
+///printf
 
 //void SendToClient(uint8 *data, uint8 len)
 //{
