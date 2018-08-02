@@ -8,5 +8,5 @@ HTTP Client: send GET request to the remote server to obtain information
 Scene Order: save the relative orders in a scene mode, the scene mode can be triggered by sensors
 Remote Update: the firmware can be updated remotely by espressif platform
 
-##Compile
+## Compile
 run gen_misc.sh
